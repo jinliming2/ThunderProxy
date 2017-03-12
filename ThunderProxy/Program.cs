@@ -14,12 +14,13 @@ namespace ThunderProxy {
         byte[] buffer = new byte[32768];
 
         static void Main(string[] args) {
+            var program = new Program();
+            program.LoadConfig();
             if(args.Length < 1) {
+                Console.WriteLine("按回车键退出...");
                 Console.ReadLine();
                 return;
             }
-            var program = new Program();
-            program.LoadConfig();
             IEnumerator ie = program.Start(args[0]).GetEnumerator();
             ie.MoveNext();
             int port = (int)ie.Current;
@@ -37,6 +38,7 @@ namespace ThunderProxy {
 <Config>
     <Command><![CDATA[C:\Program Files\VideoLAN\VLC\vlc.exe]]></Command>
 </Config>");
+                Console.WriteLine("已生成默认配置文件！");
             }
             XDocument xml = XDocument.Load(CONFIG_FILE);
             command = xml.Element("Config").Element("Command").Value;
