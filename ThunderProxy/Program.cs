@@ -5,11 +5,12 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Xml.Linq;
 
 namespace ThunderProxy {
     class Program {
-        const string CONFIG_FILE = "config.xml";
+        string CONFIG_FILE = AppDomain.CurrentDomain.SetupInformation.ApplicationBase + "config.xml";
         string command;
         byte[] buffer = new byte[32768];
 
@@ -62,45 +63,47 @@ namespace ThunderProxy {
                     TcpClient server = new TcpClient("127.0.0.1", int.Parse(Regex.Match(address, @":(\d+)/").Groups[1].Value));
                     NetworkStream c_stream = client.GetStream();
                     NetworkStream s_stream = server.GetStream();
-                    StreamReader c_reader = new StreamReader(c_stream);
-                    StreamWriter s_writer = new StreamWriter(s_stream);
-                    try {
-                        //c --> s
-                        string line, header = "";
-                        //bool flag = true;
-                        while((line = c_reader.ReadLine()).Trim().Length > 0) {
-                            //if(line.ToLower().StartsWith("connection:")) {
-                            //    flag = false;
+                    new Thread(() => {
+                        StreamReader c_reader = new StreamReader(c_stream);
+                        StreamWriter s_writer = new StreamWriter(s_stream);
+                        try {
+                            //c --> s
+                            string line, header = "";
+                            //bool flag = true;
+                            while((line = c_reader.ReadLine()).Trim().Length > 0) {
+                                //if(line.ToLower().StartsWith("connection:")) {
+                                //    flag = false;
+                                //    header += "Connection: close\r\n";
+                                //} else {
+                                header += line + "\r\n";
+                                //}
+                            }
+                            //if(flag) {
                             //    header += "Connection: close\r\n";
-                            //} else {
-                            header += line + "\r\n";
                             //}
+                            header += "\r\n";
+                            s_writer.Write(header);
+                            s_writer.Flush();
+                            //s --> c
+                            int length;
+                            while((length = s_stream.Read(buffer, 0, buffer.Length)) > 0) {
+                                c_stream.Write(buffer, 0, length);
+                            }
+                            c_stream.Flush();
+                        } catch(IOException e) {
+                            warn(e.Message);
+                            c_reader.Dispose();
+                            s_writer.Dispose();
+                            c_stream.Dispose();
+                            s_stream.Dispose();
+                        } catch(Exception e) {
+                            error(e.Message + "\n" + e.StackTrace);
+                            c_reader.Dispose();
+                            s_writer.Dispose();
+                            c_stream.Dispose();
+                            s_stream.Dispose();
                         }
-                        //if(flag) {
-                        //    header += "Connection: close\r\n";
-                        //}
-                        header += "\r\n";
-                        s_writer.Write(header);
-                        s_writer.Flush();
-                        //s --> c
-                        int length;
-                        while((length = s_stream.Read(buffer, 0, buffer.Length)) > 0) {
-                            c_stream.Write(buffer, 0, length);
-                        }
-                        c_stream.Flush();
-                    } catch(IOException e) {
-                        warn(e.Message);
-                        c_reader.Dispose();
-                        s_writer.Dispose();
-                        c_stream.Dispose();
-                        s_stream.Dispose();
-                    } catch(Exception e) {
-                        error(e.Message + "\n" + e.StackTrace);
-                        c_reader.Dispose();
-                        s_writer.Dispose();
-                        c_stream.Dispose();
-                        s_stream.Dispose();
-                    }
+                    }).Start();
                 } catch(Exception e)  {
                     error(e.Message + "\n" + e.StackTrace);
                     break;

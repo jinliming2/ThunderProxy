@@ -10,7 +10,7 @@ Use Thunder to play while downloading, without XMP installed.
 使用迅雷的边下边播功能，而不需要安装“迅雷看看”。
 
 ## Known Problems 已知问题
-[ ] 使用VLC播放器时，第一个数据包写出后，TCP连接会被切断，导致VLC在开始播放的时候，需要等待几秒至十几秒的时间。
+[x] ~~使用VLC播放器时，第一个数据包写出后，TCP连接会被切断，导致VLC在开始播放的时候，需要等待几秒至十几秒的时间。~~（智障了。。忘记单独开线程了。。。直接把主线程堵死了。。。所以迟迟不能开始下载，导致的。。。）
 
 ## 开发环境
 * Visual Studio 2017
