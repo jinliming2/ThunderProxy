@@ -60,34 +60,47 @@ namespace ThunderProxy {
                     log("等待连接...");
                     TcpClient client = tcpListener.AcceptTcpClient();
                     log("已接受连接...");
-                    TcpClient server = new TcpClient("127.0.0.1", int.Parse(Regex.Match(address, @":(\d+)/").Groups[1].Value));
+                    int port = int.Parse(Regex.Match(address, @":(\d+)/").Groups[1].Value);
+                    TcpClient server = new TcpClient("127.0.0.1", port);
                     NetworkStream c_stream = client.GetStream();
                     NetworkStream s_stream = server.GetStream();
                     new Thread(() => {
+                        log("已分配线程：" + Thread.CurrentThread.ManagedThreadId);
                         StreamReader c_reader = new StreamReader(c_stream);
+                        StreamWriter c_writer = new StreamWriter(c_stream);
+                        StreamReader s_reader = new StreamReader(s_stream);
                         StreamWriter s_writer = new StreamWriter(s_stream);
                         try {
                             //c --> s
                             string line, header = "";
-                            //bool flag = true;
                             while((line = c_reader.ReadLine()).Trim().Length > 0) {
-                                //if(line.ToLower().StartsWith("connection:")) {
-                                //    flag = false;
-                                //    header += "Connection: close\r\n";
-                                //} else {
-                                header += line + "\r\n";
-                                //}
+                                if(line.ToLower().StartsWith("host:")) {
+                                    header += "Host: 127.0.0.1:" + port + "\r\n";
+                                } else {
+                                    header += line + "\r\n";
+                                }
                             }
-                            //if(flag) {
-                            //    header += "Connection: close\r\n";
-                            //}
                             header += "\r\n";
                             s_writer.Write(header);
                             s_writer.Flush();
                             //s --> c
+                            header = "";
+                            long total = long.MaxValue;
+                            while((line = s_reader.ReadLine()).Trim().Length > 0) {
+                                if(line.ToLower().StartsWith("content-length:")) {
+                                    if(!long.TryParse(line.ToLower().Substring(15), out total)) {
+                                        total = long.MaxValue;
+                                    }
+                                }
+                                header += line + "\r\n";
+                            }
+                            header += "\r\n";
+                            c_writer.Write(header);
+                            c_writer.Flush();
                             int length;
-                            while((length = s_stream.Read(buffer, 0, buffer.Length)) > 0) {
+                            while(total > 0 && (length = s_stream.Read(buffer, 0, buffer.Length)) > 0) {
                                 c_stream.Write(buffer, 0, length);
+                                total -= length;
                             }
                             c_stream.Flush();
                         } catch(IOException e) {
@@ -102,9 +115,23 @@ namespace ThunderProxy {
                             s_writer.Dispose();
                             c_stream.Dispose();
                             s_stream.Dispose();
+                        } finally {
+                            c_reader.Close();
+                            c_writer.Close();
+                            s_reader.Close();
+                            s_writer.Close();
+                            c_stream.Close();
+                            s_stream.Close();
+                            c_reader.Dispose();
+                            c_writer.Dispose();
+                            s_reader.Dispose();
+                            s_writer.Dispose();
+                            c_stream.Dispose();
+                            s_stream.Dispose();
+                            log("线程" + Thread.CurrentThread.ManagedThreadId + "已退出");
                         }
                     }).Start();
-                } catch(Exception e)  {
+                } catch(Exception e) {
                     error(e.Message + "\n" + e.StackTrace);
                     break;
                 }
