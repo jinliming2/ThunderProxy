@@ -22,6 +22,10 @@ namespace ThunderProxy {
                 Console.ReadLine();
                 return;
             }
+            if(Regex.IsMatch(args[0], @"^[a-zA-Z]:")) {
+                Process.Start(program.command, args[0].Replace('\'', '/').Replace("//", "/"));
+                return;
+            }
             Console.Title = "Thunder Proxy - 按 Ctrl + C 退出";
             IEnumerator ie = program.Start(args[0]).GetEnumerator();
             ie.MoveNext();
