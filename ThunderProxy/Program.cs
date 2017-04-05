@@ -28,6 +28,10 @@ namespace ThunderProxy {
                 Process.Start(program.command, args[0].Replace('\'', '/').Replace("//", "/"));
                 return;
             }
+            if(Regex.IsMatch(args[0], @"^file://")) {
+                Process.Start(program.command, args[0]);
+                return;
+            }
             Console.Title = "Thunder Proxy - 按 Ctrl + C 退出";
             IEnumerator ie = program.Start(args[0]).GetEnumerator();
             ie.MoveNext();
