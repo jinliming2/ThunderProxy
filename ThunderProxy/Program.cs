@@ -14,6 +14,8 @@ namespace ThunderProxy {
         string command;
         byte[] buffer = new byte[32768];
 
+        static Process player;
+
         static void Main(string[] args) {
             var program = new Program();
             program.LoadConfig();
@@ -31,10 +33,9 @@ namespace ThunderProxy {
             ie.MoveNext();
             int port = (int)ie.Current;
             log("开始监听本地" + port + "端口...");
-            Process.Start(program.command, Regex.Replace(args[0], @":\d+/", ":" + port + "/"));
+            player = Process.Start(program.command, Regex.Replace(args[0], @":\d+/", ":" + port + "/"));
             log("已执行启动播放器命令...");
             ie.MoveNext();
-            Console.ReadLine();
         }
 
         /// <summary>
@@ -59,6 +60,20 @@ namespace ThunderProxy {
             TcpListener tcpListener = new TcpListener(new IPEndPoint(IPAddress.Loopback, 0));
             tcpListener.Start();
             yield return (tcpListener.LocalEndpoint as IPEndPoint).Port;
+            new Thread(() => {
+                while(true) {
+                    player.WaitForExit();
+                    try {
+                        log("播放器已退出，退出状态码：" + player.ExitCode);
+                        tcpListener.Stop();
+                        break;
+                    } catch(InvalidOperationException) {
+                    } catch(Exception e) {
+                        error(e.Message + "\n" + e.StackTrace);
+                        break;
+                    }
+                }
+            }).Start();
             while(true) {
                 try {
                     log("等待连接...");
