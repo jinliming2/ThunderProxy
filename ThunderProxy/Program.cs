@@ -24,12 +24,13 @@ namespace ThunderProxy {
                 Console.ReadLine();
                 return;
             }
+            var arg = args[0][0] != '"' ? ('"' + args[0] + '"') : args[0];
             if(Regex.IsMatch(args[0], @"^[a-zA-Z]:")) {
-                Process.Start(program.command, args[0].Replace('\'', '/').Replace("//", "/"));
+                Process.Start(program.command, arg.Replace('\'', '/').Replace("//", "/"));
                 return;
             }
             if(Regex.IsMatch(args[0], @"^file://")) {
-                Process.Start(program.command, args[0]);
+                Process.Start(program.command, arg);
                 return;
             }
             Console.Title = "Thunder Proxy - 按 Ctrl + C 退出";
@@ -37,7 +38,7 @@ namespace ThunderProxy {
             ie.MoveNext();
             int port = (int)ie.Current;
             log("开始监听本地" + port + "端口...");
-            player = Process.Start(program.command, Regex.Replace(args[0], @":\d+/", ":" + port + "/"));
+            player = Process.Start(program.command, Regex.Replace(arg, @":\d+/", ":" + port + "/"));
             log("已执行启动播放器命令...");
             ie.MoveNext();
         }
